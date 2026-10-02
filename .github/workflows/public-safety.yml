@@ -1,0 +1,32 @@
+name: public-source-safety
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  safety:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify private source is not public
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if find . -type f -name '*.pine' -print -quit | grep -q .; then
+            echo 'ERROR: full Pine source must not be committed to the public showcase.'
+            exit 1
+          fi
+
+          if find . -type d \( -name 'python_ref' -o -name 'private_source' -o -name 'internal_tests' \) -print -quit | grep -q .; then
+            echo 'ERROR: private implementation/reference directories detected.'
+            exit 1
+          fi
+
+          if grep -RIl --exclude='public-safety.yml' -E 'BEGIN PRIVATE SOURCE|FULL PRIVATE PINE SOURCE' . | grep -q .; then
+            echo 'ERROR: private-source marker detected.'
+            exit 1
+          fi
+
+          echo 'Public showcase safety checks passed.'
